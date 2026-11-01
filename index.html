@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GAS - RTLH Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <style>
+    .kecamatan-marker-badge { display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+    .kecamatan-marker-badge:hover { transform: scale(1.15); }
+    .desa-marker-badge { background-color: #059669; color: white; border: 2px solid white; border-radius: 8px; padding: 2px 6px; font-weight: bold; font-size: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.25); cursor: default; white-space: nowrap; }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased text-gray-800 select-none">
+
+  <!-- ================= LAYAR AWAL / WELCOME SCREEN ================= -->
+  <div id="loginScreen" class="flex items-center justify-center min-h-screen px-4 bg-cover bg-center bg-no-repeat relative bg-slate-900" style="background-image: url('https://lh3.googleusercontent.com/d/15V6yiW6XvifhszeYrgDkYiUeQr8fFTFW');">
+    <div class="absolute inset-0 bg-slate-900/75 backdrop-blur-xs"></div>
+    <div class="bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md relative z-10 border border-white/20 text-center">
+      <div class="flex flex-col items-center mb-6">
+        <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-blue-500/30 mx-auto">
+  <i class="fa-solid fa-house-chimney text-4xl sm:text-5xl"></i>
+</div>
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-800 tracking-wider mb-1">PENDATAAN APP</h1>
+        <p class="text-xs sm:text-sm text-gray-500 font-medium">Nama Instansi/Perusahaan</p>
+      </div>
+      <button onclick="handleLogin()" id="btnLogin" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition duration-200 text-base shadow-lg flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-right-to-bracket"></i><span>Masuk</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MAIN DASHBOARD & SYSTEM ================= -->
+  <div id="dashboardScreen" class="hidden flex min-h-screen relative overflow-hidden">
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity"></div>
+
+    <!-- Sidebar / Menu Samping -->
+    <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-[#0a1d37] text-white flex flex-col justify-between p-5 transform -translate-x-full md:translate-x-0 md:static md:shrink-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+      <div>
+        <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-700">
+          <div class="flex items-center space-x-3">
+            <img src="https://lh3.googleusercontent.com/d/1wR1BfvEfZpdarC1iw3Ruxxrk3USG_jxz" onerror="this.style.display='none';" class="w-10 h-10 object-contain rounded" alt="Logo">
+            <div><h1 class="text-md font-bold tracking-wide">RTLH APP</h1><p class="text-[11px] text-gray-400">Portofolio System</p></div>
+          </div>
+          <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        
+        <nav class="space-y-1">
+          <button id="menuBeranda" onclick="gantiHalaman('beranda')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white bg-blue-600 font-medium text-sm transition"><i class="fa-solid fa-house w-4"></i> <span>Dashboard</span></button>
+          <button id="menuInformasi" onclick="gantiHalaman('informasi')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition"><i class="fa-solid fa-circle-info w-4"></i> <span>Informasi Pengajuan</span></button>
+          <button id="menuForm" onclick="gantiHalaman('form')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition"><i class="fa-solid fa-pen-to-square w-4"></i> <span>Formulir Pengajuan</span></button>
+          <button id="menuPengajuan" onclick="gantiHalaman('pengajuan')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition"><i class="fa-solid fa-magnifying-glass-location w-4"></i> <span>Cek Data Pengajuan</span></button>
+          <button id="menuDraft" onclick="gantiHalaman('draft')" class="w-full flex items-center justify-between px-4 py-3 rounded-lg text-gray-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition"><div class="flex items-center space-x-3"><i class="fa-solid fa-box-archive w-4"></i> <span>Draft Pengajuan</span></div><span id="badgeDraft" class="hidden bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0</span></button>
+          <button onclick="handleLogout()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 font-medium text-sm transition mt-6 border border-red-500/20"><i class="fa-solid fa-right-from-bracket w-4"></i> <span>Log Out</span></button>
+        </nav>
+      </div>
+      <div class="text-[11px] text-gray-400 border-t border-slate-700 pt-4"><p class="font-medium">Dinas Perumahan dan Kawasan Permukiman</p><p class="mt-2">© 2026 RTLH System.</p></div>
+    </aside>
+
+    <!-- Konten Utama Kanan -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="bg-white/90 backdrop-blur-md border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 shrink-0 z-30 sticky top-0">
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <button onclick="toggleSidebar()" class="md:hidden text-gray-700 hover:text-blue-600 focus:outline-none p-2 rounded-lg hover:bg-gray-100"><i class="fa-solid fa-bars text-xl"></i></button>
+          <h2 id="judulHalamanHeader" class="text-xs sm:text-sm font-semibold text-gray-700 truncate max-w-[180px] sm:max-w-none">Dashboard</h2>
+        </div>
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <div class="hidden sm:flex items-center text-xs sm:text-sm text-gray-500 mr-2"><i class="fa-regular fa-calendar-days mr-1.5"></i> <span id="currentDate"></span></div>
+          <div class="flex items-center space-x-2 text-xs sm:text-sm text-gray-700 font-medium"><div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm">P</div><span class="hidden xs:inline">Pengguna</span></div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8 bg-cover bg-center bg-no-repeat relative bg-gray-100" style="background-image: url('https://lh3.googleusercontent.com/d/15V6yiW6XvifhszeYrgDkYiUeQr8fFTFW');">
+        <div class="absolute inset-0 bg-gray-100/50 pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto relative z-10 space-y-6">
+          
+          <!-- ================= HALAMAN A: BERANDA ================= -->
+          <div id="halamanBeranda" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-md flex items-center space-x-4"><div class="p-3 bg-blue-50 text-blue-600 rounded-lg text-2xl"><i class="fa-solid fa-folder-open"></i></div><div><p class="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Pengajuan Masuk</p><h4 id="statTotalPengajuan" class="text-lg sm:text-2xl font-black text-blue-600 mt-0.5"><i class="fa-solid fa-circle-notch animate-spin text-sm"></i></h4></div></div>
+              <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-md flex items-center space-x-4"><div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-2xl"><i class="fa-solid fa-house-chimney-crack"></i></div><div><p class="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Jumlah RTLH Terdata</p><h4 id="statJumlahRtlh" class="text-lg sm:text-2xl font-black text-emerald-600 mt-0.5">13.604 Unit</h4></div></div>
+              <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-md flex items-center space-x-4"><div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg text-2xl"><i class="fa-solid fa-map-location-dot"></i></div><div><p class="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Jumlah Kecamatan</p><h4 class="text-lg sm:text-2xl font-black text-indigo-600 mt-0.5">8 Kecamatan</h4></div></div>
+              <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-md flex items-center space-x-4"><div class="p-3 bg-amber-50 text-amber-600 rounded-lg text-2xl"><i class="fa-solid fa-landmark"></i></div><div><p class="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-wider">Jumlah Desa / Kel</p><h4 class="text-lg sm:text-2xl font-black text-amber-600 mt-0.5">84 Desa / Kel</h4></div></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              <div class="bg-white/90 backdrop-blur-md rounded-2xl p-5 md:p-6 shadow-md border border-gray-200/80 flex flex-col justify-between space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3"><div class="flex items-center space-x-2"><span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-lg"><i class="fa-solid fa-map-location-dot"></i></span><div><h3 id="judulPetaSpasial" class="font-bold text-gray-800 text-base sm:text-lg">Peta Sebaran per Kecamatan</h3><p id="subJudulPetaSpasial" class="text-xs text-gray-500">Klik titik Kecamatan untuk melihat persebaran Desa.</p></div></div><button id="btnResetPeta" onclick="tampilkanSemuaKecamatanDiPeta()" class="hidden bg-slate-800 hover:bg-slate-900 text-white text-xs px-3.5 py-2 rounded-xl font-semibold transition flex items-center space-x-1.5 shadow-md shrink-0"><i class="fa-solid fa-arrow-left"></i><span>Kembali</span></button></div>
+                <div id="petaSebaranRtlh" class="flex-1 w-full min-h-[380px] h-[380px] rounded-xl border border-gray-200 relative z-1"></div>
+              </div>
+              <div class="bg-white/90 backdrop-blur-md rounded-2xl p-5 md:p-6 shadow-md border border-gray-200/80 flex flex-col justify-between space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3"><div><div class="flex items-center space-x-2"><span class="p-2 bg-blue-50 text-blue-600 rounded-lg text-lg"><i class="fa-solid fa-chart-simple"></i></span><h3 class="font-bold text-gray-800 text-base sm:text-lg">Grafik Distribusi per Desa</h3></div><p class="text-xs text-gray-500 mt-0.5">Filter Kecamatan untuk rincian Desa.</p></div><div class="flex items-center space-x-2 shrink-0"><label class="text-xs font-semibold text-gray-600 whitespace-nowrap"><i class="fa-solid fa-filter text-blue-500 mr-1"></i> Kec:</label><select id="filterKecamatanChart" onchange="renderChartBerdasarkanKecamatan()" class="px-2.5 py-1.5 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 bg-white cursor-pointer shadow-xs"></select></div></div>
+                <div class="relative flex-1 w-full min-h-[380px] h-[380px]"><canvas id="chartRtlhDesa"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= HALAMAN INFORMASI PENGAJUAN ================= -->
+          <div id="halamanInformasi" class="hidden space-y-6 max-w-5xl mx-auto">
+            <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+              <div class="absolute right-0 top-0 bottom-0 opacity-10 flex items-center justify-center pr-8 pointer-events-none"><i class="fa-solid fa-hand-holding-hand text-9xl"></i></div>
+              <div class="relative z-10 space-y-2"><span class="bg-blue-500/30 text-blue-200 text-xs font-bold px-3 py-1 rounded-full border border-blue-400/30"><i class="fa-solid fa-circle-info mr-1.5"></i> Panduan Resmi Penerima Bantuan</span><h3 class="text-xl sm:text-2xl font-black text-white tracking-wide">Persyaratan & Kriteria Bantuan RTLH</h3><p class="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">Program Bantuan Rumah Tidak Layak Huni (RTLH) ditujukan untuk meningkatkan kualitas hunian masyarakat berpenghasilan rendah.</p></div>
+            </div>
+          </div>
+
+          <!-- ================= HALAMAN B: FORMULIR PENDATAAN ================= -->
+          <div id="halamanForm" class="hidden space-y-6 max-w-5xl mx-auto">
+            <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-4 sm:p-5 flex items-start space-x-4 shadow-md"><div class="p-3 bg-blue-50 text-blue-600 rounded-lg text-xl"><i class="fa-solid fa-clipboard-list"></i></div><div><h3 class="font-bold text-gray-800 text-sm sm:text-base">Isi Formulir Pengajuan</h3><p class="text-xs sm:text-sm text-gray-500 mt-0.5">Silakan lengkapi data. Tanda <span class="text-red-500 font-bold">*</span> wajib diisi.</p></div></div>
+            <form id="rtlhForm" onsubmit="event.preventDefault();" class="space-y-6">
+              <input type="hidden" id="editRowIndex" name="rowIndex" value="">
+              <input type="hidden" id="editNoUrutLama" name="nomor_urut_lama" value="">
+              
+              <!-- SEKSI A: DATA LOKASI -->
+              <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200/80 p-4 sm:p-6">
+                <h4 class="text-blue-600 font-bold border-b border-gray-100 pb-3 mb-5 text-xs sm:text-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>A. Data Lokasi & Pemilik</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">1. Nama Kepala Keluarga <span class="text-red-500">*</span></label><input type="text" name="nama" required class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white"></div>
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">2. NIK (16 Digit) <span class="text-red-500">*</span></label><input type="text" name="nik" maxlength="16" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white font-mono"></div>
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">3. Nomor KK <span class="text-red-500">*</span></label><input type="text" name="no_kk" maxlength="16" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white font-mono"></div>
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">4. Alamat Lengkap</label><input type="text" name="alamat" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white"></div>
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">5. Kecamatan</label><select id="selectKecamatan" name="kecamatan" onchange="updateDesaDropdown()" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white cursor-pointer"><option value="">-- Pilih Kecamatan --</option></select></div>
+                  <div><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">6. Desa / Kelurahan</label><select id="selectDesa" name="desa" class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm bg-white cursor-pointer" disabled><option value="">-- Pilih Desa --</option></select></div>
+                  <div class="md:col-span-2"><label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">7. Koordinat Lokasi (Otomatis)</label><div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2"><input type="text" id="koordinat" name="koordinat" class="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm text-blue-700 font-mono font-semibold" placeholder="Mencari satelit GPS..."><button type="button" onclick="ambilLokasiGPS()" class="bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center justify-center space-x-1 shrink-0"><i class="fa-solid fa-location-crosshairs"></i> <span>Refresh GPS</span></button></div></div>
+                </div>
+              </div>
+
+              <!-- SEKSI B: DOKUMEN -->
+              <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200/80 p-4 sm:p-6">
+                <h4 class="text-blue-600 font-bold border-b border-gray-100 pb-3 mb-2 text-xs sm:text-sm"><i class="fa-solid fa-id-card mr-2"></i>B. Upload Dokumen Administrasi</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                  <label class="border-2 border-dashed border-gray-300/80 bg-white/50 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-blue-400 min-h-[110px] relative"><input type="file" id="file_ktp" accept="image/*" class="hidden" onchange="previewDocFile('ktp')"><button type="button" id="btn_hapus_ktp" onclick="hapusDocFile(event, 'ktp')" class="hidden absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10"><i class="fa-solid fa-xmark"></i></button><i id="icon_ktp" class="fa-solid fa-address-card text-xl text-gray-400 mb-1.5"></i><span class="text-xs font-bold text-gray-700">Foto KTP</span><span id="text_ktp" class="text-[9px] text-gray-400 mt-0.5">Upload KTP</span></label>
+                  <label class="border-2 border-dashed border-gray-300/80 bg-white/50 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-blue-400 min-h-[110px] relative"><input type="file" id="file_kk" accept="image/*" class="hidden" onchange="previewDocFile('kk')"><button type="button" id="btn_hapus_kk" onclick="hapusDocFile(event, 'kk')" class="hidden absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10"><i class="fa-solid fa-xmark"></i></button><i id="icon_kk" class="fa-solid fa-users-rectangle text-xl text-gray-400 mb-1.5"></i><span class="text-xs font-bold text-gray-700">Foto KK</span><span id="text_kk" class="text-[9px] text-gray-400 mt-0.5">Upload KK</span></label>
+                  <label class="border-2 border-dashed border-gray-300/80 bg-white/50 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-blue-400 min-h-[110px] relative"><input type="file" id="file_surat_tanah" accept="image/*" class="hidden" onchange="previewDocFile('surat_tanah')"><button type="button" id="btn_hapus_surat_tanah" onclick="hapusDocFile(event, 'surat_tanah')" class="hidden absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10"><i class="fa-solid fa-xmark"></i></button><i id="icon_surat_tanah" class="fa-solid fa-file-contract text-xl text-gray-400 mb-1.5"></i><span class="text-xs font-bold text-gray-700">Surat Tanah</span><span id="text_surat_tanah" class="text-[9px] text-gray-400 mt-0.5">Upload Kepemilikan</span></label>
+                  <label class="border-2 border-dashed border-gray-300/80 bg-white/50 rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-white hover:border-blue-400 min-h-[110px] relative"><input type="file" id="file_sktm" accept="image/*" class="hidden" onchange="previewDocFile('sktm')"><button type="button" id="btn_hapus_sktm" onclick="hapusDocFile(event, 'sktm')" class="hidden absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10"><i class="fa-solid fa-xmark"></i></button><i id="icon_sktm" class="fa-solid fa-file-invoice text-xl text-gray-400 mb-1.5"></i><span class="text-xs font-bold text-gray-700">Foto SKTM</span><span id="text_sktm" class="text-[9px] text-gray-400 mt-0.5">Upload SKTM</span></label>
+                </div>
+              </div>
+
+              <!-- SEKSI C: KETERANGAN & FOTO RUMAH -->
+              <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200/80 p-4 sm:p-6 lg:col-span-2 flex flex-col justify-between">
+                  <div><h4 class="text-gray-700 font-bold border-b border-gray-100 pb-3 mb-4 flex items-center text-xs sm:text-sm"><i class="fa-regular fa-comment-dots mr-2 text-blue-600"></i>Keterangan Tambahan</h4><textarea name="keterangan" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm resize-none bg-white"></textarea></div>
+                </div>
+                <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200/80 p-4 sm:p-6 lg:col-span-3">
+                  <h4 class="text-gray-700 font-bold border-b border-gray-100 pb-3 mb-2 flex items-center text-xs sm:text-sm"><i class="fa-solid fa-cloud-arrow-up mr-2 text-blue-600"></i>C. Upload Foto Kondisi Rumah</h4>
+                  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                    <script>
+                      const labelFoto = ["Depan", "Dalam", "Bangunan", "Lain", "Lain"];
+                      for(let i=1; i<=5; i++) {
+                        document.write(`
+                          <label class="border-2 border-dashed border-gray-300/80 bg-white/50 rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 relative">
+                            <input type="file" id="file_foto${i}" accept="image/*" class="hidden" onchange="previewFile(${i})">
+                            <button type="button" id="btn_hapus_foto${i}" onclick="hapusFotoRumah(event, ${i})" class="hidden absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] z-10"><i class="fa-solid fa-xmark"></i></button>
+                            <i id="icon_foto${i}" class="fa-solid fa-cloud-arrow-up text-lg text-gray-400 mb-1"></i>
+                            <span class="text-[10px] font-bold text-gray-600">Foto ${i}</span>
+                            <span id="text_foto${i}" class="text-[8px] text-gray-400 mt-0.5 line-clamp-1">${labelFoto[i-1]}</span>
+                          </label>
+                        `);
+                      }
+                    </script>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TOMBOL KIRIM -->
+              <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="resetSatuForm()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm"><i class="fa-solid fa-arrow-rotate-left"></i> Reset Form</button>
+                <button type="button" onclick="simpanDraftSecaraManual()" class="bg-amber-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm"><i class="fa-solid fa-box-archive"></i> Simpan Draft</button>
+                <button type="button" onclick="kirimFormSistem()" id="btnSubmit" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md"><i class="fa-solid fa-paper-plane"></i> Simpan & Kirim</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- ================= HALAMAN C: DATA PENGAJUAN ================= -->
+          <div id="halamanPengajuan" class="hidden space-y-6 max-w-5xl mx-auto">
+            <div class="bg-white/90 backdrop-blur-md border border-gray-200/80 rounded-xl p-6 sm:p-8 shadow-md max-w-2xl mx-auto text-center space-y-4">
+              <h3 class="font-bold text-gray-800 text-lg">Cek Data Pengajuan RTLH</h3>
+              <div class="flex space-x-2 pt-2">
+                <input type="text" id="inputNikCekStatus" maxlength="16" placeholder="Masukkan 16 Digit NIK..." class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-mono">
+                <button onclick="prosesCekStatusMandiri()" id="btnCekNik" class="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl text-sm"><i class="fa-solid fa-search"></i> Cari</button>
+              </div>
+            </div>
+            <div id="hasilCekStatusContainer" class="hidden max-w-2xl mx-auto"></div>
+          </div>
+
+          <!-- ================= HALAMAN D: DRAFT OFFLINE ================= -->
+          <div id="halamanDraft" class="hidden space-y-6 max-w-5xl mx-auto">
+            <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-gray-200/80 overflow-hidden">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="bg-gray-50/80 border-b border-gray-200 text-gray-600 font-semibold"><th class="p-4">Nama</th><th class="p-4">NIK</th><th class="p-4">Wilayah</th><th class="p-4 text-center">Tindakan</th></tr></thead>
+                <tbody id="tabelDraftBody" class="divide-y divide-gray-100 text-gray-700"></tbody>
+              </table>
+              <div id="draftKosong" class="hidden p-10 text-center text-gray-400 space-y-2"><i class="fa-solid fa-folder-open text-4xl text-gray-300"></i><p class="text-sm">Tidak ada berkas draft.</p></div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT SYSTEM LOGIC -->
+  <script>
+    // ===============================================================================
+    // KONFIGURASI API BACKEND LOKAL/GLITCH
+    const API_URL = "/api"; 
+    // ===============================================================================
+
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    let dataFotoBase64 = { foto1: null, foto2: null, foto3: null, foto4: null, foto5: null };
+    let dataDokumenBase64 = { fotoKTP: null, fotoKK: null, fotoSuratTanah: null, fotoSKTM: null };
+
+    const dataWilayah = {
+      "Aek Kuo": ["Aek Korsik", "Bandar Selamat", "Karang Anyar", "Padang Maninjau", "Perkebunan Padang Halaban", "Perkebunan Panigoran", "Purworejo", "Sidomulyo"],
+      "Aek Natas": ["Bandar Durian (Kel)", "Adian Torop", "Kampung Yaman", "Pangkalan", "Perkebunan Aek Pamingke", "Perkebunan Halim B", "Poldung", "Rombisan", "Sibito", "Simonis", "Terang Bulan", "Ujung Padang"],
+      "Kualuh Hilir": ["Kampung Mesjid (Kel)", "Kuala Bangka", "Sungai Apung", "Sungai Sentang", "Tanjung Mangedar", "Teluk Binjai", "Teluk Piai"],
+      "Kualuh Hulu": ["Aek Kanopan (Kel)", "Aek Kanopan Timur (Kel)", "Kuala Beringin", "Parpaudangan", "Perkebunan Hanna", "Perkebunan Kanopan Ulu", "Perkebunan Labuhan Haji", "Perkebunan Londut", "Perkebunan Membang Muda", "Pulo Dogom", "Sono Martani", "Suka Rame", "Suka Rame Baru"],
+      "Kualuh Leidong": ["Tanjung Leidong (Kel)", "Air Hitam", "Kelapa Sebatang", "Pangkalan Lunang", "Simandulang", "Teluk Pulai Dalam", "Teluk Pulai Luar"],
+      "Kualuh Selatan": ["Gunting Saga (Kel)", "Bandar Lama", "Damuli Pekan", "Gunung Melayu", "Hasang", "Lobu Huala", "Perkebunan Damuli", "Sialang Taji", "Siamporik", "Sidua Dua", "Simangalam", "Tanjung Pasir"],
+      "Marbau": ["Marbau (Kel)", "Aek Tapa", "Babussalam", "Belongkut", "Bulungihit", "Lobu Rampah", "Marbau Selatan", "Pulo Bargot", "Simpang Empat", "Sipare Pare Hilir", "Sipare Pare Tengah", "Tubiran"],
+      "Na IX-X": ["Aek Kota Batu (Kel)", "Bangun Rejo", "Batu Tunggal", "Hatapang", "Kampung Pajak", "Meranti Omas", "Pasang Lela", "Pematang", "Pulo Jantan", "Silumajang", "Simpang Marbau", "Sungai Raja"]
+    };
+
+    const koordinatKecamatan = { "Aek Kuo": [2.321, 99.780], "Aek Natas": [2.385, 99.580], "Kualuh Hilir": [2.550, 99.900], "Kualuh Hulu": [2.583, 99.650], "Kualuh Leidong": [2.720, 100.030], "Kualuh Selatan": [2.450, 99.650], "Marbau": [2.200, 99.780], "Na IX-X": [2.220, 99.600] };
+    const koordinatDesaMap = { "Aek Kanopan (Kel)": [2.5682, 99.6518], "Tanjung Leidong (Kel)": [2.7400, 100.040] /* (Titik koordinat desa disingkat demi kecepatan, Leaflet akan mengkalkulasi posisi otomatis dari data awal) */ };
+
+    let myChartInstance = null; let dataGrafikServer = {}; let myMapInstance = null; let layerGroupPeta = null; let dataPetaMentahServer = [];
+
+    function bersihkanTeks(str) { return String(str || '').toLowerCase().replace(/kecamatan|kec\.|kelurahan|kel\.|desa|\(kel\)|\(desa\)/gi, '').replace(/[^a-z0-9]/g, '').trim(); }
+
+    function inisialisasiDropdownWilayah() {
+      const selectKec = document.getElementById("selectKecamatan");
+      if (!selectKec) return;
+      selectKec.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+      for (let kec in dataWilayah) { let opt = document.createElement("option"); opt.value = kec; opt.innerText = kec; selectKec.appendChild(opt); }
+    }
+    function inisialisasiChartFilter() {
+      const sel = document.getElementById("filterKecamatanChart");
+      if(sel) { sel.innerHTML = ""; for (let kec in dataWilayah) { let opt = document.createElement("option"); opt.value = kec; opt.innerText = kec; sel.appendChild(opt); } }
+    }
+    function updateDesaDropdown() {
+      const selectKec = document.getElementById("selectKecamatan").value;
+      const selectDesa = document.getElementById("selectDesa");
+      selectDesa.innerHTML = '<option value="">-- Pilih Desa --</option>';
+      if (selectKec && dataWilayah[selectKec]) {
+        selectDesa.disabled = false;
+        dataWilayah[selectKec].forEach(d => { let opt = document.createElement("option"); opt.value = d; opt.innerText = d; selectDesa.appendChild(opt); });
+      } else { selectDesa.disabled = true; }
+    }
+    window.addEventListener('DOMContentLoaded', () => { inisialisasiDropdownWilayah(); });
+
+    function handleLogin() { document.getElementById("loginScreen").classList.add("hidden"); document.getElementById("dashboardScreen").classList.remove("hidden"); gantiHalaman('beranda'); }
+    function handleLogout() { if (confirm("Yakin ingin keluar?")) { document.getElementById("dashboardScreen").classList.add("hidden"); document.getElementById("loginScreen").classList.remove("hidden"); } }
+    function toggleSidebar() { const sidebar = document.querySelector("aside"); const overlay = document.getElementById("sidebarOverlay"); if (sidebar && overlay) { sidebar.classList.toggle("-translate-x-full"); overlay.classList.toggle("hidden"); } }
+
+    // INDEXEDDB ENGINE (DRAFT OFFLINE)
+    let db;
+    const requestDB = indexedDB.open("RTLH_Offline_DB", 1);
+    requestDB.onupgradeneeded = (e) => { db = e.target.result; if (!db.objectStoreNames.contains("drafts")) db.createObjectStore("drafts", { keyPath: "id", autoIncrement: true }); };
+    requestDB.onsuccess = (e) => { db = e.target.result; hitungUlangBadgeDraft(); };
+
+    function simpanKeDB(data, callback) { const tx = db.transaction(["drafts"], "readwrite"); tx.objectStore("drafts").add(data).onsuccess = () => { hitungUlangBadgeDraft(); callback(true); }; }
+    function dapatkanSemuaDraft(cb) { const tx = db.transaction(["drafts"], "readonly"); tx.objectStore("drafts").getAll().onsuccess = (e) => cb(e.target.result); }
+    function hapusDraftDariDB(id, cb) { const tx = db.transaction(["drafts"], "readwrite"); tx.objectStore("drafts").delete(id).onsuccess = () => { hitungUlangBadgeDraft(); cb(true); }; }
+    function hitungUlangBadgeDraft() { if(db) dapatkanSemuaDraft(list => { const b = document.getElementById("badgeDraft"); if(list.length > 0) { b.innerText = list.length; b.classList.remove("hidden"); } else b.classList.add("hidden"); }); }
+
+    // FETCH API UNTUK KOMUNIKASI DENGAN BACKEND NODE.JS
+    function muatStatistikBeranda() { fetch(`${API_URL}/statistik`).then(r => r.json()).then(r => document.getElementById("statTotalPengajuan").innerText = r.success ? `${r.totalPengajuan} Berkas` : "0 Berkas").catch(()=>document.getElementById("statTotalPengajuan").innerText="0 Berkas"); }
+    function muatDataGrafikBeranda() { inisialisasiChartFilter(); fetch(`${API_URL}/grafik`).then(r => r.json()).then(r => { dataGrafikServer = r.success ? r.data : {}; renderChartBerdasarkanKecamatan(); }).catch(() => { dataGrafikServer = {}; renderChartBerdasarkanKecamatan(); }); }
+    function inisialisasiDanMuatPeta() {
+      const mapEl = document.getElementById('petaSebaranRtlh');
+      if (!mapEl) return;
+      setTimeout(() => {
+        if (!myMapInstance) { myMapInstance = L.map('petaSebaranRtlh').setView([2.4000, 99.7500], 10); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(myMapInstance); layerGroupPeta = L.layerGroup().addTo(myMapInstance); }
+        myMapInstance.invalidateSize();
+        fetch(`${API_URL}/peta`).then(r => r.json()).then(r => { dataPetaMentahServer = r.success ? r.data : []; tampilkanSemuaKecamatanDiPeta(); }).catch(()=> { dataPetaMentahServer=[]; tampilkanSemuaKecamatanDiPeta(); });
+      }, 400);
+    }
+
+    function tampilkanSemuaKecamatanDiPeta() {
+      if (!myMapInstance || !layerGroupPeta) return;
+      layerGroupPeta.clearLayers(); document.getElementById("btnResetPeta").classList.add("hidden"); document.getElementById("judulPetaSpasial").innerText = "Peta Sebaran per Kecamatan";
+      const rekapKec = {}; for (let kec in dataWilayah) rekapKec[kec] = 0;
+      dataPetaMentahServer.forEach(item => { let found = Object.keys(dataWilayah).find(k => bersihkanTeks(k) === bersihkanTeks(item.kecamatan)); if (found) rekapKec[found]++; });
+      const bounds = [];
+      for (let kec in koordinatKecamatan) {
+        let coord = koordinatKecamatan[kec];
+        let iconBadge = L.divIcon({ className: 'custom-leaflet-kec-badge', html: `<div class="kecamatan-marker-badge"><div style="width:14px;height:14px;background-color:#dc2626;border:2px solid white;border-radius:50%;"></div><div style="background:white;border:1px solid #dc2626;border-radius:6px;padding:1px 6px;font-size:10px;margin-top:2px;">${kec}</div></div>`, iconSize: [100, 36] });
+        let marker = L.marker(coord, { icon: iconBadge }).addTo(layerGroupPeta);
+        marker.bindPopup(`<div class="text-xs text-center"><p class="font-bold text-red-600">Kec. ${kec}</p><p class="font-medium">Total: ${rekapKec[kec]} Unit</p><button onclick="zoomKeKecamatan('${kec}')" class="mt-2 bg-red-600 text-white px-2 py-1 rounded">Lihat Desa</button></div>`);
+        bounds.push(coord);
+      }
+      if (bounds.length > 0) myMapInstance.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    function zoomKeKecamatan(namaKecamatan) {
+      if (!myMapInstance || !layerGroupPeta) return;
+      layerGroupPeta.clearLayers(); document.getElementById("btnResetPeta").classList.remove("hidden"); document.getElementById("judulPetaSpasial").innerText = `Sebaran Desa - ${namaKecamatan}`;
+      const daftarDesa = dataWilayah[namaKecamatan] || []; const bounds = []; const baseCoord = koordinatKecamatan[namaKecamatan] || [2.4, 99.75];
+      daftarDesa.forEach((desaName, idx) => {
+        let coordDesa = koordinatDesaMap[desaName];
+        if (!coordDesa) { let angle = (idx / daftarDesa.length) * 2 * Math.PI; let radius = 0.025 + (idx % 3) * 0.015; coordDesa = [baseCoord[0] + Math.sin(angle) * radius, baseCoord[1] + Math.cos(angle) * radius]; }
+        let iconDesa = L.divIcon({ className: 'custom-leaflet-desa-badge', html: `<div class="desa-marker-badge"><span>${desaName}</span></div>`, iconSize: [120, 26] });
+        L.marker(coordDesa, { icon: iconDesa, interactive: false }).addTo(layerGroupPeta); bounds.push(coordDesa);
+      });
+      if (bounds.length > 0) myMapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+    }
+
+    function renderChartBerdasarkanKecamatan() {
+      const sel = document.getElementById("filterKecamatanChart"); if(!sel) return;
+      const kec = sel.value || Object.keys(dataWilayah)[0]; const labels = dataWilayah[kec] || []; const counts = [];
+      let kS = Object.keys(dataGrafikServer).find(k => bersihkanTeks(k) === bersihkanTeks(kec)); let dS = kS ? dataGrafikServer[kS] : {};
+      labels.forEach(desa => { let c = 0; for (let key in dS) { if (bersihkanTeks(key) === bersihkanTeks(desa)) c += dS[key]; } counts.push(c); });
+      const ctx = document.getElementById('chartRtlhDesa').getContext('2d');
+      if (myChartInstance) myChartInstance.destroy();
+      myChartInstance = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Jumlah Usulan', data: counts, backgroundColor: 'rgba(37, 99, 235, 0.75)', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    }
+
+    function gantiHalaman(target) {
+      const hals = { beranda: 'halamanBeranda', informasi: 'halamanInformasi', form: 'halamanForm', pengajuan: 'halamanPengajuan', draft: 'halamanDraft' };
+      for (let k in hals) document.getElementById(hals[k]).classList.add("hidden");
+      document.getElementById(hals[target]).classList.remove("hidden");
+
+      if (target === 'beranda') { muatStatistikBeranda(); muatDataGrafikBeranda(); inisialisasiDanMuatPeta(); } 
+      else if (target === 'form' && !document.getElementById("editRowIndex").value) ambilLokasiGPS();
+      else if (target === 'draft') muatTabelDraftSistem();
+    }
+
+    function prosesCekStatusMandiri() {
+      const nikInput = document.getElementById("inputNikCekStatus").value.trim(); const container = document.getElementById("hasilCekStatusContainer"); const btn = document.getElementById("btnCekNik");
+      if (nikInput.length < 16) { alert("Masukkan 16 digit NIK lengkap!"); return; }
+      btn.innerHTML = 'Mencari...'; btn.disabled = true;
+      fetch(`${API_URL}/cekStatus`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nik: nikInput }) })
+      .then(r => r.json()).then(res => {
+        btn.innerHTML = 'Cari Data'; btn.disabled = false; container.classList.remove("hidden");
+        if (res.found) {
+          container.innerHTML = `<div class="bg-white/95 p-6 shadow-xl border rounded-2xl"><div class="flex justify-between border-b pb-3 mb-3"><span class="bg-green-100 text-green-700 font-bold text-xs px-3 py-1 rounded">Data Terdaftar</span></div><div class="grid grid-cols-2 gap-2 text-sm"><div><p class="text-xs text-gray-500">Nama</p><p class="font-bold">${res.data.nama}</p></div><div><p class="text-xs text-gray-500">NIK</p><p>${res.data.maskedNik}</p></div><div><p class="text-xs text-gray-500">Wilayah</p><p>${res.data.desa}, ${res.data.kecamatan}</p></div></div><div class="mt-4 text-right"><button onclick="mulaiEditData('${nikInput}')" class="bg-amber-500 text-white px-4 py-2 text-sm font-bold rounded">Edit Data Ini</button></div></div>`;
+        } else { container.innerHTML = `<div class="bg-white p-6 shadow-xl text-center text-red-500 font-bold">Data NIK Tidak Ditemukan</div>`; }
+      }).catch(() => { btn.innerHTML = 'Cari Data'; btn.disabled = false; });
+    }
+
+    function mulaiEditData(nik) {
+      fetch(`${API_URL}/detailEdit`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nik: nik }) })
+      .then(r => r.json()).then(res => {
+        if (res.success) {
+          document.getElementById("editRowIndex").value = res.rowIndex;
+          document.getElementById("editNoUrutLama").value = res.data.nomor_urut_lama;
+          gantiHalaman('form');
+          const form = document.getElementById("rtlhForm");
+          form.elements["nama"].value = res.data.nama || ""; form.elements["nik"].value = res.data.nik || "";
+          form.elements["no_kk"].value = res.data.no_kk || ""; form.elements["alamat"].value = res.data.alamat || "";
+          if (res.data.kecamatan) { form.elements["kecamatan"].value = res.data.kecamatan; updateDesaDropdown(); form.elements["desa"].value = res.data.desa; }
+          form.elements["koordinat"].value = res.data.koordinat || ""; form.elements["keterangan"].value = res.data.keterangan || "";
+          const docs = ["ktp", "kk", "surat_tanah", "sktm"]; docs.forEach(doc => { if (res.existingFiles[doc]) { document.getElementById(`icon_${doc}`).className="fa-solid fa-circle-check text-xl text-green-600 mb-1.5"; document.getElementById(`text_${doc}`).innerText="Tersimpan"; } });
+          for (let i = 1; i <= 5; i++) { if (res.existingFiles[`foto${i}`]) { document.getElementById(`icon_foto${i}`).className="fa-solid fa-circle-check text-xl text-green-600 mb-1"; document.getElementById(`text_foto${i}`).innerText="Tersimpan"; } }
+          document.getElementById("btnSubmit").innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Update Perubahan';
+        }
+      });
+    }
+
+    function ambilLokasiGPS() {
+      const koor = document.getElementById("koordinat"); koor.value = ""; koor.placeholder = "Mengunci GPS...";
+      if (navigator.geolocation) navigator.geolocation.getCurrentPosition(pos => koor.value = pos.coords.latitude + ", " + pos.coords.longitude, err => koor.placeholder = "Gagal memuat GPS.", { enableHighAccuracy: true });
+      else koor.placeholder = "Browser tidak mendukung GPS";
+    }
+
+    function kompresGambar(file, maxRes, quality, callback) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image(); img.onload = () => {
+          const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d");
+          let width = img.width, height = img.height;
+          if (width > height) { if (width > maxRes) { height *= maxRes / width; width = maxRes; } } else { if (height > maxRes) { width *= maxRes / height; height = maxRes; } }
+          canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height); callback(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = e.target.result;
+      }; reader.readAsDataURL(file);
+    }
+
+    function previewDocFile(key) {
+      const file = document.getElementById(`file_${key}`).files[0];
+      if (file) {
+        kompresGambar(file, 1280, 0.75, compressed => {
+          if (key === 'ktp') dataDokumenBase64.fotoKTP = { base64: compressed }; else if (key === 'kk') dataDokumenBase64.fotoKK = { base64: compressed }; else if (key === 'surat_tanah') dataDokumenBase64.fotoSuratTanah = { base64: compressed }; else if (key === 'sktm') dataDokumenBase64.fotoSKTM = { base64: compressed };
+          document.getElementById(`icon_${key}`).className = "fa-solid fa-circle-check text-xl text-green-600 mb-1.5"; document.getElementById(`text_${key}`).innerText = file.name; document.getElementById(`btn_hapus_${key}`).classList.remove("hidden");
+        });
+      }
+    }
+    function hapusDocFile(e, key) { if (e) e.stopPropagation(); document.getElementById(`file_${key}`).value = ""; document.getElementById(`btn_hapus_${key}`).classList.add("hidden"); document.getElementById(`icon_${key}`).className = "fa-solid fa-file text-xl text-gray-400 mb-1.5"; document.getElementById(`text_${key}`).innerText = "Dihapus"; }
+
+    function previewFile(idx) {
+      const file = document.getElementById(`file_foto${idx}`).files[0];
+      if (file) kompresGambar(file, 1280, 0.70, comp => { dataFotoBase64[`foto${idx}`] = { base64: comp }; document.getElementById(`icon_foto${idx}`).className = "fa-solid fa-circle-check text-lg text-green-600 mb-1"; document.getElementById(`text_foto${idx}`).innerText = file.name; document.getElementById(`btn_hapus_foto${idx}`).classList.remove("hidden"); });
+    }
+    function hapusFotoRumah(e, idx) { if (e) e.stopPropagation(); document.getElementById(`file_foto${idx}`).value = ""; dataFotoBase64[`foto${idx}`] = null; document.getElementById(`icon_foto${idx}`).className = "fa-solid fa-image text-lg text-gray-400 mb-1"; document.getElementById(`text_foto${idx}`).innerText = "Dihapus"; document.getElementById(`btn_hapus_foto${idx}`).classList.add("hidden"); }
+
+    function resetSatuForm() { document.getElementById("rtlhForm").reset(); document.getElementById("editRowIndex").value = ""; document.getElementById("selectKecamatan").value = ""; updateDesaDropdown(); document.getElementById("btnSubmit").innerHTML = '<i class="fa-solid fa-paper-plane"></i> Simpan & Kirim Data'; ambilLokasiGPS(); }
+    
+    function ekstrakDataFormulir() { const fd = new FormData(document.getElementById("rtlhForm")); return { rowIndex: fd.get("rowIndex"), nomor_urut_lama: fd.get("nomor_urut_lama"), nama: fd.get("nama"), nik: fd.get("nik"), no_kk: fd.get("no_kk"), alamat: fd.get("alamat"), desa: fd.get("desa"), kecamatan: fd.get("kecamatan"), koordinat: fd.get("koordinat"), keterangan: fd.get("keterangan"), ...dataFotoBase64, ...dataDokumenBase64 }; }
+
+    function simpanDraftSecaraManual() {
+      const p = ekstrakDataFormulir();
+      if (!p.nama || p.nik.length !== 16) { alert("NIK wajib 16 digit!"); return; }
+      simpanKeDB(p, status => { if(status) { alert("Tersimpan Offline!"); resetSatuForm(); gantiHalaman('draft'); } });
+    }
+
+    function kirimFormSistem() {
+      const btn = document.getElementById("btnSubmit"); const p = ekstrakDataFormulir();
+      if (!p.nama || p.nik.length !== 16) { alert("Lengkapi data dengan benar!"); return; }
+      const isEdit = p.rowIndex && Number(p.rowIndex) > 0;
+      btn.innerHTML = 'Memproses...'; btn.disabled = true;
+
+      fetch(`${API_URL}/simpanData`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: p }) })
+      .then(r => r.json()).then(res => {
+        if (res.success) { alert(isEdit ? "Update Berhasil!" : "Data terkirim!"); resetSatuForm(); gantiHalaman('beranda'); } 
+        else { alert("Ditolak sistem: " + res.message); }
+        btn.innerHTML = isEdit ? 'Update' : 'Kirim'; btn.disabled = false;
+      }).catch(err => {
+        alert("Server Offline / Sinyal lemah! Menyimpan ke Draft."); simpanKeDB(p, () => { resetSatuForm(); gantiHalaman('draft'); });
+        btn.innerHTML = 'Kirim'; btn.disabled = false;
+      });
+    }
+
+    function muatTabelDraftSistem() {
+      const tbody = document.getElementById("tabelDraftBody"); const kosongDiv = document.getElementById("draftKosong"); tbody.innerHTML = "";
+      dapatkanSemuaDraft(list => {
+        if(list.length === 0) { kosongDiv.classList.remove("hidden"); return; }
+        kosongDiv.classList.add("hidden");
+        list.forEach(draft => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td class="p-4 font-bold">${draft.nama}</td><td class="p-4">${draft.nik}</td><td class="p-4">${draft.desa}, ${draft.kecamatan}</td><td class="p-4 text-center"><button onclick="kirimUlangDraftTunggal(${draft.id}, this)" class="bg-green-600 text-white px-2 py-1 rounded text-xs">Kirim</button> <button onclick="hapusDraftDariDB(${draft.id}, muatTabelDraftSistem)" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Hapus</button></td>`;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    function kirimUlangDraftTunggal(id, btn) {
+      btn.innerHTML = '...'; btn.disabled = true;
+      const tx = db.transaction(["drafts"], "readonly");
+      tx.objectStore("drafts").get(id).onsuccess = function(e) {
+        let p = {...e.target.result}; delete p.id;
+        fetch(`${API_URL}/simpanData`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: p }) })
+        .then(r => r.json()).then(res => { if (res.success) { alert("Sukses!"); hapusDraftDariDB(id, muatTabelDraftSistem); } else { alert("Gagal"); muatTabelDraftSistem(); } }).catch(() => { alert("Sinyal lemah!"); muatTabelDraftSistem(); });
+      };
+    }
+  </script>
+</body>
+</html>
